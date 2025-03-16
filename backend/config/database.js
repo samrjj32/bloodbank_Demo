@@ -15,7 +15,12 @@ const pool = mysql.createPool({
 // Test connection
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error('Database connection failed:', err.message);
+    console.error('Database connection failed:', err);
+    console.error('Connection details:', {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME
+    });
   } else {
     console.log('Successfully connected to the database');
     connection.release();
