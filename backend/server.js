@@ -10,15 +10,24 @@ const requesterRoutes = require('./routes/requesters');
 
 const app = express();
 
-// CORS configuration - place this BEFORE any routes
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
+// Add this near the top of your server.js file, before any routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Add a CORS test endpoint
+app.get('/cors-test', (req, res) => {
+  res.json({ message: 'CORS is working!' });
+});
 
 // Regular middleware
 app.use(express.json());
