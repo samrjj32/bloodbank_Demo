@@ -10,15 +10,23 @@ const requesterRoutes = require('./routes/requesters');
 
 const app = express();
 
+// CORS configuration - place this BEFORE any routes
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
+
+// Regular middleware
+app.use(express.json());
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS Configuration - More permissive for development
-app.use(cors());  // Allow all origins in development
-
-// Enable pre-flight requests for all routes
-app.options('*', cors());
 
 // Test database connection
 const testDbConnection = async () => {
