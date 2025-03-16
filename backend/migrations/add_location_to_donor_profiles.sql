@@ -1,0 +1,2 @@
+ALTER TABLE donor_profiles
+ADD COLUMN location VARCHAR(255) DEFAULT NULL; 
