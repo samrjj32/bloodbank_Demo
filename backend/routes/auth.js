@@ -78,33 +78,61 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('Login attempt for:', email);
-    
-    // Check if email and password are provided
+    console.log('Login attempt for email:', email);
+
+    // Validate input
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Find user by email
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    console.log('User found:', users.length > 0);
-    
-    if (users.length === 0) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    // Test database connection first
+    try {
+      const [testResult] = await db.query('SELECT 1 as test');
+      console.log('Database connection test:', testResult);
+    } catch (dbError) {
+      console.error('Database connection test failed:', dbError);
+      return res.status(500).json({ message: 'Database connection error' });
     }
 
-    const user = users[0];
-    console.log('User has password:', !!user.password);
-    
+    // Find user
+    let user;
+    try {
+      const [users] = await db.query(
+        'SELECT id, email, password, name, role FROM users WHERE email = ?', 
+        [email]
+      );
+      console.log('Users found:', users.length);
+      
+      if (users.length === 0) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+      
+      user = users[0];
+      console.log('User found:', { id: user.id, email: user.email, hasPassword: !!user.password });
+      
+      if (!user.password) {
+        console.error('User has no password stored');
+        return res.status(500).json({ message: 'Invalid user data' });
+      }
+    } catch (queryError) {
+      console.error('User query error:', queryError);
+      return res.status(500).json({ message: 'Error finding user' });
+    }
+
     // Compare passwords
-    const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match:', isMatch);
-    
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    try {
+      const isMatch = await bcrypt.compare(password, user.password);
+      console.log('Password match result:', isMatch);
+      
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+    } catch (bcryptError) {
+      console.error('Password comparison error:', bcryptError);
+      return res.status(500).json({ message: 'Error verifying password' });
     }
 
-    // Generate JWT token
+    // Generate token
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
@@ -120,9 +148,39 @@ router.post('/login', async (req, res) => {
         role: user.role
       }
     });
+
   } catch (error) {
     console.error('Login error details:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ 
+      message: 'Server error during login',
+      error: error.message 
+    });
+  }
+});
+
+router.get('/test-connection', async (req, res) => {
+  try {
+    const [result] = await db.query('SELECT 1 + 1 as sum');
+    res.json({ 
+      success: true, 
+      result,
+      dbConfig: {
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME
+      }
+    });
+  } catch (error) {
+    console.error('Test connection error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      dbConfig: {
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        database: process.env.DB_NAME
+      }
+    });
   }
 });
 

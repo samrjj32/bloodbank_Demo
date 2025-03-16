@@ -1,6 +1,12 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 
+console.log('Attempting database connection with:', {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  database: process.env.DB_NAME
+});
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -9,25 +15,26 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
-  // Removed SSL configuration
 });
 
-// Test connection
+// Test the connection immediately
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error('Database connection failed:', err);
-    console.error('Connection details:', {
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      database: process.env.DB_NAME
-    });
+    console.error('Database connection error:', err);
   } else {
-    console.log('Successfully connected to the database');
-    connection.release();
+    console.log('Database connected successfully');
+    // Test query
+    connection.query('SELECT 1 + 1 AS result', (error, results) => {
+      if (error) {
+        console.error('Test query failed:', error);
+      } else {
+        console.log('Test query successful:', results);
+      }
+      connection.release();
+    });
   }
 });
 
-// Convert pool to use promises
 const promisePool = pool.promise();
 
 module.exports = promisePool; 
